@@ -1,0 +1,308 @@
+/* cfg  */
+body {
+  margin-bottom:30px; margin-top:10px;
+  font-family:georgia; font-size:1em;
+  
+  background: #DDD;
+}
+
+
+/********************************************/
+/**********  Table of contents **************/
+/********************************************/
+.tocDiv{
+     padding: 10px;
+     padding-right: 20px;
+     border: 2px solid black;     
+     display: inline-block;
+}
+
+.tocTitle{
+     font-size: 110%;
+     font-weight: 800;
+     text-decoration: underline;
+}
+
+#toc div { padding-bottom: 3px; padding-left:1em; }
+#toc div.h2:before { content:"● "; }
+#toc div.h3:before { content:"● ";padding-left:1em; }
+#toc div.h4:before { content:"○ ";padding-left:2em; }
+
+/********************************************/
+/******************* General ****************/
+/********************************************/
+
+.contents{        
+     max-width: 800px;
+     margin:0 auto;
+}
+
+.note { 
+     border-radius: 4px; 
+     background-color: #d9e8f4; 
+     padding: 7px 4px;
+     margin: 8px;
+}
+
+.note_uml { 
+     
+     background-color: #fff56257;      
+     border: 1px #806c009f solid;
+     color: #806c00;
+     padding: 15px 15px;
+     
+     display: inline-block;
+}
+
+.introductionSteps {
+     padding: 7px 4px;
+     margin: 4px;
+}
+
+code { font-family: Consolas, monospace }
+
+pre {
+  font-family: Consolas, monospace;  
+  font-size:10pt;
+/*   white-space: pre-wrap; */
+  overflow: auto;
+}
+
+caption { text-align:left; font-style:italic; }
+
+h1 {font-family: serif; margin:25px 0 25px 0 }
+
+h2 { font-family: serif; margin:25px 0 25px 0 }
+h4 { margin:15px 0 15px 0 }
+a { color:#0099f7 }
+
+/* Small box below header, that tells user what the chapter
+     is going to explain. */
+.explanation { 
+     font-size:90%;
+     padding: 12px; 
+     border-style: dashed;
+     border-width: 1px;
+     border-color: rgb(48, 48, 48);
+     display: inline-block;
+     max-width: 50%;
+     margin-bottom: 10px;
+}
+
+.definition { margin-top:25px; padding-top:10px;padding-bottom:10px; background:#8DFF87 }
+.container { width:100%; margin-left:auto; margin-right:auto;}
+/* .container2 { margin-left:auto; margin-right:auto;width:1120px;} */
+.content { width:100%; margin-left:auto; margin-right:auto; padding:35px 25px 5px 25px; background:white; text-align:left;} /*background: #f9fff9*/
+/* .content2 { width:705px; margin-left:auto; margin-right:auto; padding:35px 20px 5px 20px; background:white; text-align:left; } */
+
+img {object-fit: cover}
+
+img.medium { width:75%; height:75%}
+
+figcaption { color:#7b7070 }
+figure { margin:0; max-width: 700px; /*background: green;*/ display:inline-block}
+
+.table { margin-top:15px; margin-bottom:20px; color:#7b7070 }
+
+b a {
+ color: rgb(11, 74, 156);
+ text-decoration-style: dotted;
+}
+
+.structure{
+     text-align:left;
+}
+
+h2{
+     text-align:center;
+}
+
+.groupingFrame{
+     border: 1px solid grey;
+     padding: 4px;
+}
+/********************************************/
+/*************** Code related ***************/
+/********************************************/
+code{
+     font-size:92%;
+}
+
+.codeblock
+{     
+     text-align:left;
+     
+     margin-top:0;  
+     padding-bottom:10px; 
+     padding-left:10px; 
+     background:#edeff4;
+     color:black; padding-top:10px; 
+     border-bottom-left-radius: 10px; 
+     border-bottom-right-radius: 10px;
+}
+
+.code {
+     background-color: #eff0f167;
+     font-family:    Consolas,Menlo,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,monospace,sans-serif;
+     padding: 1px 5px;
+
+}
+
+.codeunimportant{
+     opacity: 0.5;
+}
+
+.codecomment{
+  color: green;
+}
+
+.codevar{
+  color: rgb(59, 70, 0);
+}
+
+.codefunc{
+  color: rgb(0, 69, 180)
+}
+
+.codeconst{
+     color: rgb(138, 0, 0);
+}
+
+
+
+.codehead { 
+     text-align:center;
+     font-family: Consolas; 
+     font-weight:500; 
+     color:#599a60; 
+     background:#d5e8d7; 
+     border-top-left-radius:4px; 
+     border-top-right-radius:4px; 
+     padding-top:10px;
+     padding-bottom:10px;
+     margin-bottom:0 ; 
+
+     font-size:105%;
+     border-top-left-radius: 10px;
+     border-top-right-radius: 10px;
+
+}
+
+/********************************************/
+/******************** Misc ******************/
+/********************************************/
+
+.output { padding-left: 15px; color: white; font-family: monospace; background: #94A694; border: 1px solid #94A694 }
+
+.center { text-align:center }
+
+.nav_r { float:right }
+nav a { margin-right: 0.4em}
+
+/* hr.btm { width:550px; margin-top:35px; margin-bottom:35px } */
+
+.gray {
+background-color: #efefef;
+}
+
+table {
+    border-top: 1px solid #999;
+    border-left: 1px solid #999;
+    border-collapse: collapse;
+   /* float:left;*/
+/*     margin:15px; */
+}
+
+tr:nth-child(odd) {background: #efefef}
+
+
+td, th {
+
+    border-right: 1px solid #999;
+    border-bottom: 1px solid #999;
+}
+
+th {
+    padding: 8px;
+    font-family: Georgia;
+    font-size: 1em;
+    background: url(/img/cmn/stripe.jpg);
+}
+
+td {
+/*     font-family: monospace; */
+    font-size: 1em;
+    padding:5px;
+}
+
+.keyword {
+ color: #074685
+}
+
+
+
+
+.ltow { float:left; background:white; width:160px; height:300px; }
+.big_hor { position:relative; left:-11px }
+.resp {}
+.hor { text-align:center }
+.large_rec {}
+.med_rec {}
+
+.social {}
+.fb-like { top:-7px; padding-right:1em }
+.twitter { display:inline-block }
+
+.rtow { float:right }
+
+#ebooks ul { list-style-type: none; padding-left:0; }
+
+
+@media (min-width: 705px) {
+         
+   .content {
+        width:705px;
+   }    
+}
+
+
+@media (max-width: 1119px) {
+         
+   #wide_ad {
+        display: none;
+   }    
+   
+   #ebooks {
+        display: none;
+   }
+}
+
+@media (min-width: 1120px) {
+    
+   .container {
+       width:1120px; 
+   }
+      
+   #wide_ad {
+        display: block;
+   }  
+   
+   #ebooks {
+        display: block;
+   } 
+}
+
+/*@media (min-width: 1410px) {
+    
+   .container {
+       width:1410px; 
+   }
+      
+   #max_ad {
+        display: block;
+   }   
+}*/
+
+
+
+
