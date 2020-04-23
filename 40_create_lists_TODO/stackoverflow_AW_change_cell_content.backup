@@ -1,0 +1,115 @@
+1. You **cannot** change a value on a GtkTreeModel. 
+2. You can only change a value on the "raw" model (the base model).
+
+
+Theory - Good to know
+======================
+
+Gtk hierarchy
+-------------
+The following picture shows the GtkTreeModel hierarchy and what (important) functions they offer
+[!GtkTreeModel_hierarchy.png]
+
+As you can see, if you want to change the values of cells, you need to differentiate what kind of model you're actually working on.
+
+GtkCellRenderer and the "edited" signal / callback
+--------------------------------------------------
+
+One Renderer should only be "assigned" to one column. Otherwise you don't know which column the user tried to change.
+
+
+Change value of a GtkTreeModelSort of a *GtkTreeStore*
+=======================================================
+See the example below for GtkListStore, and replace GtkListStore with GtkTreeStore. That should hopefully do the trick.
+
+
+Change value of a GtkTreeModelSort of a *GtkListStore*
+=======================================================
+
+	void 
+	onEdited_name (GtkCellRendererText * cell,
+              	   gchar               * path_string,
+                   gchar               * new_text,
+                   gpointer              p_model_sorted)
+	{		
+		// we need to convert to GtkListStore, because GtkTreeModel does not
+		//  provide an interface for cell content changing.
+		
+				
+		// convert raw data to the actual type
+		GtkTreeModelSort * model_sorted = GTK_TREE_MODEL_SORT(p_model_sorted);
+				
+		// get the iterator within the sorted model
+		GtkTreeIter iter_sortedModel;
+		gtk_tree_model_get_iter_from_string((GtkTreeModel*)model_sorted,
+		              &iter_sortedModel,path_string);  		
+		
+		// convert sorted model to raw model
+		GtkListStore * model_raw;		
+		model_raw = GTK_LIST_STORE(gtk_tree_model_sort_get_model(model_sorted));
+		
+		// convert the iterator to one of the raw model.
+		// (Otherwise the wrong cell will change)
+		GtkTreeIter iter_rawModel;
+		gtk_tree_model_sort_convert_iter_to_child_iter(model_sorted, &iter_rawModel, &iter_sortedModel);
+		
+		
+		gtk_list_store_set(model_raw, &iter_rawModel,
+		        					LIST_COL_NAME, new_text, -1);
+	} 
+
+
+
+
+Change value of a GtkListStore OR GtkTreeModelSort of *GtkListStore*
+===================================================================
+Imagine you have two GtkTreeViews shown based on the same model. One is sorted, the other one not. This function will show you how to manage those.
+
+Note, that we now pass a **GtkTreeView** as gpointer, instead of GtkTreeModel.
+
+
+	void onEdited_name(GtkCellRendererText *cell,
+	                        gchar * path_string,
+	                        gchar * new_text,
+	                        gpointer _treeview) // <--- GtkTreeView now!!!!
+	{
+		// we HAVE TO use GtkTreeView within gpointer!
+		//  otherwise we could not differntiate the model type!
+		GtkTreeView * treeview = GTK_TREE_VIEW(_treeview);
+		GtkTreeModel * treeModel = gtk_tree_view_get_model(treeview);
+		
+		// we need to use GtkListStore, because GtkTreeModel does not
+		//  provide an interface for cell changing.
+		GtkListStore * model;	
+		GtkTreeIter iter_rawModel;
+		
+		// check if we're working on the raw model or on a sorted version
+		//  of it
+		if(GTK_IS_LIST_STORE(treeModel)){
+			// just use the model as is    
+			model = GTK_LIST_STORE(treeModel);
+			
+			// retrieve the iterator for the cell, that should be changed
+			gtk_tree_model_get_iter_from_string((GtkTreeModel*)model,
+												&iter_rawModel, path_string);
+		
+		} else { // we're working on a sorted model   
+			// We need to change to a usual model.
+			GtkTreeModelSort * sortedModel = GTK_TREE_MODEL_SORT(treeModel);
+			model = GTK_LIST_STORE(gtk_tree_model_sort_get_model(sortedModel));
+			
+			// get the iterator within the sorted model
+			GtkTreeIter iter_sortedModel;
+			gtk_tree_model_get_iter_from_string((GtkTreeModel*)sortedModel,
+			                      &iter_sortedModel, path_string);  
+			
+			// convert the iterator to one of the raw model.
+			// (Otherwise the wrong cell will change)
+			gtk_tree_model_sort_convert_iter_to_child_iter(sortedModel, &iter_rawModel, &iter_sortedModel);
+		}
+		
+		
+		gtk_list_store_set(GTK_LIST_STORE(model), &iter_rawModel,
+		            LIST_COL_NAME,new_text, -1);
+	
+	}   
