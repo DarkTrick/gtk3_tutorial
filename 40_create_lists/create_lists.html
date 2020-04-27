@@ -1,0 +1,713 @@
+<!DOCTYPE html> 
+<html lang="en">
+<!--
+    License: CC-BY (DarkTrick - 69f925915ed0193a3b841aeec09451df2326f104)
+-->
+
+<head><meta charset="utf-8">
+<title>GTK3 - Create Lists</title>
+<link rel="stylesheet" href="../html_technical/style.css" type="text/css">
+<script type="text/javascript" src="../html_technical/scripts.js" ></script>
+
+</head>
+<body>
+  
+
+<div class="contents">
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+
+<div>
+  <a id="simpleDraw"></a><h2>Basic knowledge</h2>
+  <div class="explanation">
+    <div style="font-size:110%;font-weight: bold;">Info:</div>
+    With GTK lists are realized by using <code>GtkTreeView</code>.<br>
+    Further details to this topic can be found <a href="http://scentric.net/tutorial">here</a>.
+    <br>
+    <br>
+    This chapter will introduce basic information on <code>GtkTreeView</code> stuff
+  </div>
+
+  <h3>MVC-Pattern</h3>
+  GtkTreeView devides data (Model) from rendering (View).
+  <ul>
+    <li>Model: GtkTreeModel</li>
+    <li>View: GtkTreeView</li>
+  </ul>
+  The structure of both is described below.
+
+  <h3>GtkTreeView - Structure</h3>
+  <div>
+  This image shows the basic structure of the GtkTreeView.<br>
+  <img src="./img/GtkTreeView_View_Layout.png" style="max-width:700px;width:100%;height:auto;"><br>
+  <ul>
+    <li>A <code>GtkTreeView</code> must at least have one <code>GtkCellRenderer</code>
+       (If you don't have one, your column names are displayed, but you will not see 
+        any content.)
+   but I can also have more.</li>
+   <li><code>GtkCellRenderer</code> describes a family of classes (cf. below). 
+    <div><img src="img/GtkCellRenderer_Hierarchy.png" style="width:300px;height:auto;"></div></li>
+      
+  </ul>
+  <h4>GtkTreeView - Structure - Real life example</h4>
+  <img src="img/GtkTreeView_View_Layout_example_annotated.png" style="width:550px;height:auto;">
+  
+  </div>
+
+  
+
+  <h3>GtkTreeModel</h3>
+  <ul>
+    <li><code>GtkTreeModel</code> is an interface to a concrete data store</li>
+    <li>So, <code>GtkTreeModel</code> provides a set of fucntions, that GtkTreeView could
+        call.<br>
+        E.g.
+        <ul>
+          <li>"How many rows are there?"</li>
+          <li>"Which rows have children?</li>
+          <li>"Give me some data."</li>
+        </ul>  
+    </li>
+  </ul>
+  <div>
+    The image below depicts that relationship.<br>
+    <img src="img/GtkTreeModel_GtkTreeView_connection.png"><br>
+    <div class="note_uml" style="max-width: 170px;top:-40px;position:relative;">
+  Data changing must be done on the concrete store
+    </div>
+
+    <span style="width:30px">&nbsp;</span>
+
+    <div class="note_uml" style="max-width: 350px;top:-5px;position:relative;">
+      Interface between Store and View.<br>
+      This interface ..
+      <ul>
+        <li>.. can only read data.</li>
+        <li>.. can<b>not</b> add/remove/change data.</li>
+      </ul>
+      
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+
+
+<div>
+  <a id="simple_table"></a><h2>Table: Simple Table</h2>
+  <div class="explanation">This is what we're going to create:<br>
+    <img src="img/codeResult_simpleTable.png">
+  </div>
+ 
+  <div class="codehead">table_simple.c <a href="./c_source/table_simple.c">(source)</a></div>
+  <pre class="codeblock">
+    <span class="codeunimportant">
+    #include &lt;gtk/gtk.h&gt;
+    #include &lt;stdio.h&gt;
+    </span>
+
+    // ------------------------------------------------------------
+
+    enum EListCols{
+      LIST_COL_NAME = 0,
+      LIST_COL_AGE,
+      LIST_MAX_COLS
+    };
+
+    // ------------------------------------------------------------
+
+    /**
+    * @brief: This function will create a new data model ('data store').
+    * @return: Newly created model (GtkListStore*)
+    */
+    GtkListStore * 
+    createListModel (void)
+    {
+      GtkListStore *listStore;
+      listStore = gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_UINT);
+    
+      GtkTreeIter rowIter;
+
+      // Info: the below could be done in a loop with an array, but
+      //      this way is easier to grasp.
+
+      // Create data row 1 ( like a database entry )
+      gtk_list_store_append(listStore, &rowIter);
+      gtk_list_store_set(listStore, &rowIter,
+                        LIST_COL_NAME, "AAAA", 
+                        LIST_COL_AGE, 100, -1);
+
+      // Create data row 2 ( like a database entry )
+      gtk_list_store_append(listStore, &rowIter);
+      gtk_list_store_set(listStore, &rowIter,
+                        LIST_COL_NAME, "CCCC", 
+                        LIST_COL_AGE, 60, -1);
+
+      // Create data row 3 ( like a database entry )
+      gtk_list_store_append(listStore, &rowIter);
+      gtk_list_store_set(listStore, &rowIter,
+                        LIST_COL_NAME, "BBBB", 
+                        LIST_COL_AGE, 80, -1);  
+      
+      return listStore;
+    }
+
+    // ------------------------------------------------------------
+    
+    void 
+    populateWindow (GtkWindow *window){
+
+      // ======== create a layout to place the gui elements in ==========
+      GtkBox* layout;
+      {
+        layout = (GtkBox*)gtk_box_new(GTK_ORIENTATION_VERTICAL,10);
+        gtk_container_add((GtkContainer*)window, (GtkWidget*)layout);
+      }
+      
+      // ========= create model for the lists =============
+      GtkTreeModel * model;
+      model = (GtkTreeModel*)createListModel();
+
+      // ============== create first treeView ===================
+      {  
+        GtkTreeView * treeview = (GtkTreeView *) gtk_tree_view_new();
+        gtk_box_pack_start(layout, (GtkWidget*)treeview,TRUE,TRUE,0);
+
+        // connect model and view
+        gtk_tree_view_set_model(treeview,model);       
+
+        GtkCellRenderer * renderer = (GtkCellRenderer *)gtk_cell_renderer_text_new();  
+        // setup col 1    
+        gtk_tree_view_insert_column_with_attributes(treeview, -1, "Name",
+                                renderer, "text", LIST_COL_NAME, NULL);
+        // setup col 2
+        gtk_tree_view_insert_column_with_attributes(treeview, -1, "Age", 
+                                renderer, "text", LIST_COL_AGE,  NULL);    
+
+      }   
+    
+    }    
+    // ------------------------------------------------------------
+    <span class="codeunimportant">
+    /**
+    * @brief: Do basic window setup and start real population of the window.
+    *         `activate` gets called, when the app is 
+    *         called without any file arguments
+    */
+    static void
+    activate (GApplication *app,
+              gpointer      user_data)
+    {
+      GtkWindow *window = (GtkWindow*)gtk_application_window_new (GTK_APPLICATION (app));
+      gtk_window_set_default_size (window, 200, 200);
+      gtk_window_set_position     (window, GTK_WIN_POS_CENTER);
+
+      populateWindow(window);  
+
+      gtk_widget_show_all ((GtkWidget*)window);
+    }
+    // ------------------------------------------------------------
+    int 
+    main (int argc, char *argv[]) 
+    {
+      // always use a GtkApplication. Otherwise advanced features might 
+      //  "magically" not work for you.
+      GtkApplication * app = gtk_application_new(NULL,G_APPLICATION_FLAGS_NONE);
+      g_signal_connect(app, "activate", G_CALLBACK (activate), NULL);
+
+
+      int status = g_application_run(G_APPLICATION (app), argc, argv);
+      g_object_unref(app);
+
+      return status;
+    }
+
+    // ------------------------------------------------------------
+  </span>
+  </pre>
+</div>
+
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+
+<div>
+  <a id="editing_table"></a><h2>Table: Edit Data</h2>
+  <div class="explanation">
+    <img src="img/codeResult_editableTable.png">
+  </div>
+ 
+  <div class="codehead">table_editable.c  <a href="./c_source/table_editable.c">(source)</a></div>
+  <pre class="codeblock">
+
+    // ... <a href="./c_source/table_editable.c">(see full source)</a>
+
+    // ------------------------------------------------------------
+
+    void 
+    onEdited_age (GtkCellRendererText * cell,
+                  gchar * row,
+                  gchar * new_value,
+                  gpointer liststore)
+    {        
+      GtkTreeIter iter;
+      gtk_tree_model_get_iter_from_string((GtkTreeModel*)liststore,&iter,row);
+      gtk_list_store_set(GTK_LIST_STORE(liststore),&iter, LIST_COL_AGE, atoi(new_value),-1);
+    }
+
+    // ------------------------------------------------------------
+
+    void 
+    onEdited_name ( GtkCellRendererText * cell,
+                    gchar * row,
+                    gchar * new_value,
+                    gpointer liststore)
+    {
+      GtkTreeIter iter;
+      gtk_tree_model_get_iter_from_string((GtkTreeModel*)liststore,&iter,row);
+      gtk_list_store_set(GTK_LIST_STORE(liststore),&iter, LIST_COL_NAME, new_value,-1);
+    }
+
+    // ------------------------------------------------------------
+
+    // ... <a href="./c_source/table_editable.c">(see full source)</a>
+
+    // ============== create first treeView ===================
+    {  
+      GtkTreeView * treeview = (GtkTreeView *) gtk_tree_view_new();
+      gtk_box_pack_start(layout, (GtkWidget*)treeview,TRUE,TRUE,0);
+    
+      // connect model and view
+      gtk_tree_view_set_model(treeview,model);
+
+      // Per editable column we need one renderer.
+
+      // setup col 1 - name
+      {
+        GtkCellRenderer * renderer = (GtkCellRenderer *)gtk_cell_renderer_text_new();
+        gtk_tree_view_insert_column_with_attributes(treeview, -1, "Name",
+                                  renderer, "text", LIST_COL_NAME, NULL);
+      
+        // make content editable:
+        g_object_set(renderer, "editable", TRUE, NULL);    
+        g_signal_connect(renderer,"edited",
+                        G_CALLBACK(onEdited_name), model);           
+      }
+      // setup col 2 - age          
+      {
+        GtkCellRenderer * renderer = (GtkCellRenderer *)gtk_cell_renderer_text_new();  
+        gtk_tree_view_insert_column_with_attributes(treeview, -1, "Age", 
+                                renderer, "text", LIST_COL_AGE,  NULL);    
+
+        // make content editable:
+        g_object_set(renderer, "editable", TRUE, NULL);    
+        g_signal_connect(renderer,"edited",
+                        G_CALLBACK(onEdited_age), model);           
+      }        
+    }    
+    // ... <a href="./c_source/table_editable.c">(see full source)</a>
+
+  </pre>
+</div>
+
+
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<div>
+  <a id="editing_table"></a><h2>Table: Read Data</h2>
+  <div class="explanation">
+    This section shows a function, that would print the content
+    of the content of the table to the console.
+    <br>Feel free to also use this function in the other examples.
+  </div>
+ 
+  <div class="codehead">table_editable_read_data.c::evaluateModel(...)
+    <a href="./c_source/table_editable_read_data.c">(source)</a></div>
+  <pre class="codeblock">
+  // @brief: This function prints out data of the table  
+  void evaluateModel(GtkButton *button,
+                      gpointer   treeModel)
+  {
+  GtkTreeModel * model = (GtkTreeModel*)treeModel;
+
+  GtkTreeIter iter;
+  if(FALSE == gtk_tree_model_iter_children(model, &iter, NULL)){
+  printf("ERROR: getting iter failed\n");
+  return;
+  }
+
+  gchar *name;
+  gint   age;
+
+  printf("-----------\n");
+  do{
+  // Make sure you terminate calls to gtk_tree_model_get() with a “-1” value
+  gtk_tree_model_get (model, &iter,
+              LIST_COL_NAME, &name,
+              LIST_COL_AGE, &age,
+              -1);
+  printf("row: %s - %d\n", name, age);
+  g_free (name);
+  name = NULL;
+
+  } while(TRUE == gtk_tree_model_iter_next(model, &iter));
+  printf("-----------\n");
+
+  }
+  </pre>
+</div>
+
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+
+
+<div>
+  <h2>Table: Sort Statically</h2>
+
+  <div class="explanation">
+    This part will show you how to statically sort a List by a specific column.<br>
+    As code base you should use `simple table`. Editing on sorted lists is
+    more difficult and will be done later.
+  </div>
+  <p>
+    For static sorting You only need to insert a `sorted` 
+    model between the original model and the view.  
+  </p>
+  <p>
+    Previously we had this structure:
+    <div class="groupingFrame">  
+      <pre class="codeblock">
+      <span class="codecomment">// create model and view:</span>
+      GtkTreeModel * model = createModel();
+      GtkTreeView  * view  = gtk_tree_view_new();
+
+      <span class="codecomment">// glue together:</span>
+      gtk_tree_view_set_model(view, model);
+      </pre>
+      <img src="./img/structure_simple.png" >
+    </div>
+  </p>
+
+
+  <p>
+    The new structure looks effectively like this:
+    <div class="groupingFrame">
+    
+      <pre class="codeblock">
+      <span class="codecomment">// create model and view:</span>
+      GtkTreeModel * model       = createModel();
+      GtkTreeModel * sortedModel = ...(sortedModel,model);
+      GtkTreeView  * view        = gtk_tree_view_new();
+
+      <span class="codecomment">// glue sortedModel and view:</span>
+      gtk_tree_view_set_model(view, sortedModel);
+      </pre>
+    
+      <img src="./img/structure_sorted.png" >
+    
+    </div>
+  </p>
+
+    <div class="codehead">table_sorted_static.c :: populateWindow()  <a href="./c_source/table_sorted_static.c">(source)</a></div>
+  <pre class="codeblock">
+  <span class="codeunimportant">
+
+    // ... <a href="./c_source/table_sorted_static.c">(see full source)</a>
+    void 
+    populateWindow (GtkWindow *window){
+
+      // ======== create a layout to place the gui elements in ==========
+      GtkBox* layout;
+      {
+        layout = (GtkBox*)gtk_box_new(GTK_ORIENTATION_VERTICAL,10);
+        gtk_container_add((GtkContainer*)window, (GtkWidget*)layout);
+      }
+      
+      // ========= create model for the list =============
+      GtkTreeModel * model;
+      model = (GtkTreeModel*)createListModel();   
+  </span>
+      <span class="codecomment">// ========= create sortmodel from model =============</span>
+      GtkTreeModel * sortmodel;
+      {
+        sortmodel = <span class="codefunc">gtk_tree_model_sort_new_with_model</span>(model);
+        <span class="codefunc">gtk_tree_sortable_set_sort_column_id</span>(<span class="codefunc">GTK_TREE_SORTABLE</span>(sortmodel),
+                                              <span class="codeconst">LIST_COL_NAME</span>, <span class="codeconst">GTK_SORT_ASCENDING</span>);
+      }
+  <span class="codeunimportant">
+      // ============== create treeView ===================
+      {  
+        GtkTreeView * treeview = (GtkTreeView *) gtk_tree_view_new();
+        gtk_box_pack_start(layout, (GtkWidget*)treeview,TRUE,TRUE,0);
+        </span>        
+        <span class="codecomment">// connect model and <b>sorted model</b></span>  
+        <span class="codefunc">gtk_tree_view_set_model</span>(treeview,<b style="color:red;">sortmodel</b>);   
+        <span class="codeunimportant">
+
+        GtkCellRenderer * renderer = (GtkCellRenderer *)gtk_cell_renderer_text_new();  
+        // setup col 1    
+        gtk_tree_view_insert_column_with_attributes(treeview, -1, "Name",
+                                renderer, "text", LIST_COL_NAME, NULL);
+        // setup col 2
+        gtk_tree_view_insert_column_with_attributes(treeview, -1, "Age", 
+                                renderer, "text", LIST_COL_AGE,  NULL);    
+      }   
+  
+  }
+  </span>
+
+  // ... <a href="./c_source/table_sorted_static.c">(see full source)</a>
+
+  </pre>
+</div>
+
+
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+
+<div>
+  <h2>Table: Sort by Click on Header</h2>
+
+  <div class="explanation">
+    <ul>
+    <li>
+        As code base serves the code of `simple table`. <br>
+        <b>Don't try to extend the 'statically sorted list' example and search for a 
+        <code>onClick</code> method for the headers. It doesn't exists!
+        </b>
+    </li>
+    <li>This is our goal:<br> <img src="./img/codeResult_sortableTableOnClick.png"> </li>
+    </ul>
+  </div>
+  <ul>
+    <li>
+      If you only have a simple list with primitive types (e.g. string, int):
+      <p>
+      All you need is a call to <code>gtk_tree_view_column_set_sort_column_id().</code><br>
+      <code>gtk_tree_view_column_set_sort_column_id</code> makes the column header clickable
+      and sorts the values accordingly.</p>
+      </li>
+    <li>
+      If you have your own types for the list or you want special kind of sorting:
+      <p>
+        Make use of <code> gtk_tree_sortable_set_sort_func</code> 
+        (not covered in this tutorial, but straight forward).
+      </p>
+    </li>    
+  </ul>
+  
+  <div class="codehead">table_sorted_onClick.c <a href="./c_source/table_sorted_onClick.c">(source)</a></div>
+  
+  <pre class="codeblock">
+<span class="codeunimportant">
+// ...<a href="./c_source/table_sorted_onClick.c">(see full source)</a>
+</span>
+<span class="codecomment">// ------------------------------------------------------------</span>
+
+<span class="codecomment">// @brief: adds a column to a tree view and make it sortable</span>
+<span class="codecomment">//          - all at once</span>
+<span class="codecomment">//          (maybe the naming is judged 'bad practice', see for yourself)</span>
+void 
+<span class="codefunc">gtk_tree_view_append_column_sortable</span> (
+                                      GtkTreeView * treeview,
+                                      GtkCellRenderer * renderer,
+                                      const gchar * type,
+                                      gint columnId,
+                                      const gchar * columnTitle)
+{ 
+  <span class="codecomment">// create a column and append it to the tree view</span>  
+  GtkTreeViewColumn * col;
+  col = <span class="codefunc">gtk_tree_view_column_new_with_attributes</span>(columnTitle,renderer,type, columnId,NULL);
+  <span class="codefunc">gtk_tree_view_append_column</span>(treeview,col);
+  
+  <span class="codecomment">// make column sortable on click:</span>
+  <span class="codefunc">gtk_tree_view_column_set_sort_column_id</span>(col,columnId);
+}                                  
+
+// ------------------------------------------------------------
+<span class="codeunimportant">
+
+void 
+populateWindow (GtkWindow *window){
+
+  // ======== create a layout to place the gui elements in ==========
+  GtkBox* layout;
+  {
+    layout = (GtkBox*)gtk_box_new(GTK_ORIENTATION_VERTICAL,10);
+    gtk_container_add((GtkContainer*)window, (GtkWidget*)layout);
+  }
+  
+  // ========= create model for the list =============
+  GtkTreeModel * model;
+  model = (GtkTreeModel*)createListModel();
+
+  </span>
+  <span class="codecomment">// ========= create sortmodel from model =============</span>
+  GtkTreeModel * sortmodel;
+  {
+    sortmodel = <span class="codefunc">gtk_tree_model_sort_new_with_model</span>(model);   
+  }
+
+  <span class="codecomment">// ============== create first treeView ===================</span>
+  {  
+    <span class="codeunimportant">
+    GtkTreeView * treeview = (GtkTreeView *) gtk_tree_view_new();
+    gtk_box_pack_start(layout, (GtkWidget*)treeview,TRUE,TRUE,0);
+
+    <span class="codecomment">// connect *sort*model and view</span>
+    <span class="codefunc">gtk_tree_view_set_model</span>(treeview,sortmodel);   
+
+    // ---- setup columns -----
+    gtk_tree_view_append_column_sortable(treeview,renderer,"text",LIST_COL_NAME,"Name");
+    gtk_tree_view_append_column_sortable(treeview,renderer,"text",LIST_COL_AGE,"Age");                              
+
+    GtkCellRenderer * renderer = (GtkCellRenderer *)gtk_cell_renderer_text_new();  
+    </span>
+  }   
+
+}
+
+// ------------------------------------------------------------
+
+// ...<a href="./c_source/table_sorted_onClick.c">(see full source)</a>
+  </pre>
+</div>
+
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<div>
+  <h2>Table: Sort AND Edit</h2>
+
+  <div class="explanation">
+    This code shows an example of an editable and sortable table.
+  </div>
+  
+  
+  <div class="codehead">table_editable_sortable.c <a href="./c_source/table_editable_sortable.c">(full source)</a></div>
+  
+  <pre class="codeblock">
+    /*
+      If the table is editable AND sortable, things get complicated:
+      - For editing you need the iterator of a "row" (path).
+      - For sorting you need the `GtkTreeModelSort`.
+
+      The iterator you can get though the "row" (path) will be
+        pointing to something within GtkTreeModelSort. So you
+        need to convert that to the real model
+      So, you need to reverse the projection (`ModelSort`) of the model (`Model`)
+
+    */
+
+    // ... <a href="./c_source/table_editable_sortable.c">(see full source)</a>
+    <span class="codeunimportant">
+    // ------------------------------------------------------------
+    </span>
+    // @brief: struct to hold a GtkTreeIter and its corresponding GtkTreeModel
+    typedef struct {
+      GtkTreeModel * model;
+      GtkTreeIter  iter;
+    } GtkTreeModelIter;
+    <span class="codeunimportant">
+    // ------------------------------------------------------------
+    </span>
+    /**
+     * 
+     * @brief: Get the raw model and the accoring row iterator
+     *          from the `Sort`ed model
+     * 
+     * @param model: can be GtkTreeModelSort or an arbitrary raw model
+     * @return: GtkTreeModelSort and the iterator pointing to row
+     * @constraint: `row` is valid within the model
+     */
+    GtkTreeModelIter
+    gtk_tree_model_get_TreeModelIter( GtkTreeModelSort * model, 
+                                      gchar * row)
+    {
+      // return value
+      GtkTreeModelIter rawModelData = {0};
+    
+      // get (and set) the underlying raw model
+      rawModelData.model = gtk_tree_model_sort_get_model(model);                        
+    
+      // get the iterator within the sorted model 
+      GtkTreeIter iter_sortedModel;
+      gtk_tree_model_get_iter_from_string((GtkTreeModel*)model, &iter_sortedModel,row);  
+    
+      // convert the sorted iterator to an iterator of the raw model
+      gtk_tree_model_sort_convert_iter_to_child_iter(model,
+                                                     &(rawModelData.iter), 
+                                                     &iter_sortedModel);  
+    
+      return rawModelData;
+    }
+    <span class="codeunimportant">
+    // ------------------------------------------------------------
+    </span>
+    void 
+    onEdited_age (GtkCellRendererText * renderer,
+                  gchar * row,
+                  gchar * new_value,
+                  gpointer model)
+    {      
+      GtkTreeModelIter place = gtk_tree_model_get_TreeModelIter((GtkTreeModelSort*)model, row);
+      gtk_list_store_set(GTK_LIST_STORE(place.model), &(place.iter),
+                         LIST_COL_AGE, atoi(new_value), -1);
+    }
+    <span class="codeunimportant">
+    // ------------------------------------------------------------
+    </span>
+    void 
+    onEdited_name ( GtkCellRendererText * renderer,
+                    gchar * row,
+                    gchar * new_value,
+                    gpointer model)
+    {
+      GtkTreeModelIter place = gtk_tree_model_get_TreeModelIter((GtkTreeModelSort*)model, row);
+      gtk_list_store_set(GTK_LIST_STORE(place.model), &(place.iter),
+                         LIST_COL_NAME, new_value, -1);
+    }    
+    <span class="codeunimportant">
+    // ------------------------------------------------------------
+    </span>
+    <span class="codeunimportant">
+    // ... <a href="./c_source/table_editable_sortable.c">(see full source)</a>
+    void
+    populateWindow(GtkWindow* window){
+      // ... 
+      </span>
+      // ---- setup columns -----
+      gtk_tree_view_append_column_sortable_editable(treeview,"text",LIST_COL_NAME,"Name", onEdited_name);
+      gtk_tree_view_append_column_sortable_editable(treeview,"text",LIST_COL_AGE,"Age", onEdited_age);  
+      <span class="codeunimportant">
+      // ... 
+    } 
+    // ... <a href="./c_source/table_editable_sortable.c">(see full source)</a>
+  </span>
+  </pre>
+</div>
+
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+<!-- ================================================================================ -->
+
+<br><br><br><br><br>
+<img src="./img/GtkTreeModel_hierarchy.png" style="width:200px;height:auto;">
+</div> <!-- content -->
+
+</body>
+</html>
