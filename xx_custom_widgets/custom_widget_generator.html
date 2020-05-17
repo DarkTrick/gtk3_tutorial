@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<!-- 
+  *  License: CC-0 
+  *  Creator: (DarkTrick - 69f925915ed0193a3b841aeec09451df2326f104)
+  *  Feel free to give some credit
+-->
+
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title> Generate GTK3 widget classes </title>
+
+  <style>
+    .code_output{
+      width: 35em; 
+      height:    35em;          
+      font-family: monospace;
+      font-size:60%;
+    }
+    .input input{
+      background-color: rgb(255, 255, 0);
+    }
+
+    span {
+      display:inline-block;
+    }
+
+    .boxed {
+      background-color:#00000010; border-radius:10px; padding:10px; margin: 5px;
+      vertical-align: top;
+    }
+
+    .explanation{
+      background-color:rgb(226, 226, 226);
+      margin: 10px;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    h1{margin-top: 0.5em;margin-bottom: 0.5em;}
+    h2{margin-top: 0.5em;margin-bottom: 0.5em;}
+  </style>
+
+  <script type="text/javascript">
+  
+  // ---------------------------------------------------------------
+
+  // @brief Capitalize first word letters (new words start at underbar)
+  //        eg: button    -> Button
+  //        eg: my_button -> My_Button
+  function _titelize(value) {
+    String.prototype.replaceAt = function(index, replacement) {
+      return this.substr(0, index) + replacement + this.substr(index + replacement.length);
+    }
+
+    var ret = value.charAt(0).toUpperCase() + value.slice(1);
+    
+    pos = -1;
+    while(true){
+      pos = ret.indexOf("_",pos);
+      if(-1 == pos) { break; }
+      
+      if(0 != pos){ 
+        ret = ret.replaceAt(pos+1,ret.charAt(pos+1).toUpperCase());
+      }      
+      ++pos;
+    }
+
+    return ret;
+  }
+
+  // ---------------------------------------------------------------
+
+  // @brief: eg: my_button -> MyButton
+  function _createDeclarationClassname(underscoredString){
+    var titelized = _titelize(underscoredString);
+    return titelized.replace(/_/g,"");
+  }
+
+  // ---------------------------------------------------------------
+  
+  // @brief: generate header file
+  function _generateHFile (namespace, classname, baseclass, isFinal, licensepart)
+  {
+    var ns_lower    = namespace.toLowerCase()
+    var class_lower = classname.toLowerCase()
+
+    var ns_upper    = namespace.toUpperCase()
+    var class_upper = classname.toUpperCase()
+
+    var function_prefix = namespace.toLowerCase() + "_" + classname.toLowerCase();
+    var ClassName  = _createDeclarationClassname(function_prefix);
+
+    var TYPE = _createType(function_prefix);
+    
+    var content = String.raw`
+#ifndef __` + ns_upper + `_` + class_upper + `_H__
+#define __` + ns_upper + `_` + class_upper + `_H__
+
+` + licensepart + `
+
+#include <gtk/gtk.h>
+
+G_BEGIN_DECLS
+
+#ifndef CLASS_DEF
+#define CLASS_DEF(_classname) typedef struct _##_classname _classname; struct _##_classname
+#endif                          
+
+#define ` + TYPE + ` ` + function_prefix + `_get_type ()
+`;
+
+if(isFinal){ 
+  content += String.raw`
+G_DECLARE_FINAL_TYPE (`+ClassName+`, ` + function_prefix + `, ` + ns_upper + `, ` + class_upper + `, ` + baseclass + `)
+CLASS_DEF(`+ClassName+`)
+{
+  ` + baseclass + ` parent;
+};`;
+} else {
+  content += String.raw`
+
+// note: member vars of derivable classes go into ` + ClassName + `Private (see c file)
+
+G_DECLARE_DERIVABLE_TYPE(`+ClassName+`, ` + function_prefix + `, ` + ns_upper + `, ` + class_upper + `, ` + baseclass + `)
+CLASS_DEF(`+ClassName+`Class)
+{
+  ` + baseclass + `Class parent_class;
+};`;
+
+} 
+content += String.raw`
+
+// --------------------------
+// ---- Public functions ----
+// --------------------------
+GType          ` + function_prefix + `_get_type (void);
+GtkWidget*     ` + function_prefix + `_new (void);
+
+G_END_DECLS
+
+#endif /* include-protector */`;
+
+
+    return content;
+  }
+
+  // ---------------------------------------------------------------
+  // ---------------------------------------------------------------
+  // ---------------------------------------------------------------
+  // ---------------------------------------------------------------
+  // ---------------------------------------------------------------
+  // ---------------------------------------------------------------
+
+  // @param: eg. "gtk_button" or "gtk_text_view". (NOT "GtkButton"!)
+  function _createType(function_prefix){
+    var str = function_prefix.toUpperCase();
+    
+    // GTK messes up the placement of the word "TYPE"
+    if(str.substr(0,3) == "GTK"){
+      str = "GTK_TYPE" + str.slice(3);
+    } else {
+      str = "TYPE_" + str;
+    }
+    return str;
+  }
+
+  // ---------------------------------------------------------------
+  
+  // @brief: generate c file
+  function _generateCFile (namespace, classname, baseclass_prefix, isFinal, licensepart)
+  {
+    var ns        = namespace.toLowerCase()
+    var classname = classname.toLowerCase()
+
+    var NS        = namespace.toUpperCase()
+    var CLASSNAME = classname.toUpperCase()
+
+    var BASECLASS_PREFIX  = baseclass_prefix.toUpperCase();
+    var BaseClass         = _createDeclarationClassname(baseclass_prefix);
+    var BASECLASS_TYPE    = _createType(baseclass_prefix);
+
+    var function_prefix = namespace.toLowerCase() + "_" + classname.toLowerCase();
+    var ClassName       = _createDeclarationClassname(function_prefix);
+
+    var content = "not yet implemented - c file";
+
+    var classMethodSplitter = "// ==================================================================="
+    var MethodSplitter      = "// -------------------------------------------------------------------"
+
+    {
+      content = licensepart + '\n' + 
+                '#include "' + ClassName.toLowerCase() + '.h"\n'
+                + classMethodSplitter + "\n";
+
+// final classes don't necessary need a private
+if(isFinal) {
+  content += "/*";
+}
+
+content += String.raw`
+CLASS_DEF(` + ClassName + `Private)
+{
+  char dummy; // we need at least one elem within our class
+};
+G_DEFINE_TYPE_WITH_PRIVATE(` + ClassName + `, ` + function_prefix + `,  `+ BASECLASS_TYPE +`)
+`;
+
+// final classes don't necessary need a private
+if(isFinal) {
+  content += "//*/\n"+
+  `G_DEFINE_TYPE(` + ClassName + `, ` + function_prefix + `,  `+ BASECLASS_TYPE + ")\n";
+}
+
+  content += String.raw`
+`  + classMethodSplitter + "\n" + classMethodSplitter + "\n" + classMethodSplitter + `
+
+` + MethodSplitter + `
+// TODO: fill with usual methods
+` + MethodSplitter + `
+
+` + classMethodSplitter + "\n" + classMethodSplitter + "\n" + classMethodSplitter + `
+
+// @brief: init class stuff like methods
+static void 
+` + function_prefix + `_class_init (` + ClassName + `Class* klass)
+{
+  // override class methods from ` + BaseClass + `:
+  ` + BaseClass + `Class * parent_button = ` + BASECLASS_PREFIX + `_CLASS(klass);  
+}
+
+` + classMethodSplitter + `
+
+static void 
+` + function_prefix + `_init (` + ClassName + `* self)
+{  
+  // init variables
+  
+  // init private variables:
+  // ` + ClassName + `Private * priv = ` + function_prefix + `_get_instance_private(self);
+}
+
+` + classMethodSplitter + `
+
+GtkWidget*
+` + function_prefix + `_new ()
+{
+  GtkWidget * self = g_object_new (` + function_prefix + `_get_type(), NULL);   
+  // stuff that doesn't work within init can be done here  
+  return self;
+}
+
+` + classMethodSplitter;
+
+    }
+
+    return content;
+  }
+
+  // ---------------------------------------------------------------
+
+  function showError(error){
+    // TODO: create a div for that
+    alert(error);
+  }
+
+  // ---------------------------------------------------------------
+
+  function createLicensePart(license,creator){
+    return `
+/**
+ *  License: ` + license + `
+ *  Creator: ` + creator + `
+ **/     
+`;
+  }
+
+  // ---------------------------------------------------------------
+
+  //@brief: generate class and put it into the fields
+  function generate (){
+    console.log("generating..");
+
+    try {
+      // get values from DOM
+      var namespace       = document.getElementById("input_namespace").value;
+      var classname       = document.getElementById("input_classname").value;
+      var baseclass_prefix = document.getElementById("input_baseclass_prefix").value;
+      var isFinal         = document.getElementById("input_isFinal").checked;
+      
+      var license = document.getElementById("input_license").value;
+      var creator = document.getElementById("input_creator").value;
+      var licensepart = createLicensePart(license, creator);
+
+      // validity checks:
+      if("" == namespace)       { showError("Namespace must be set");  return;}
+      if("" == classname)       { showError("class name must be set"); return;}
+      if("" == baseclass_prefix){ showError("base class prefix must be set"); return;}
+
+      // generate content
+      var hFileContent  = _generateHFile(namespace,
+                                        classname,
+                                        _createDeclarationClassname(baseclass_prefix),
+                                        isFinal,
+                                        licensepart);
+      var cFileContent  = _generateCFile(namespace,
+                                        classname,
+                                        baseclass_prefix,
+                                        isFinal,
+                                        licensepart);
+
+      // write result to DOM
+      document.getElementById("output_hFile").value = hFileContent;
+      document.getElementById("output_cFile").value = cFileContent;
+    } catch (e) {
+      alert("The following error occured during processing: \n " + e);
+      throw e;
+    }
+  }
+
+  // ---------------------------------------------------------------
+  </script>  
+</head>
+
+<body onload="document.getElementById('input_namespace').focus();">
+
+<div class="explanation">
+  <h2>Explanation</h2>
+  This site will create a gtk3-compatible class from the info given.
+  <br>
+  This is not exhaustive, but it will reduce the burden a little
+</div>
+<span class="boxed">
+<div class="input">
+<h1>Input</h1>
+  <table class="boxed">
+    <tr>
+      <td>License: </td>
+      <td><input type="text" id="input_license" style="width:30em; margin-left: 1em;"
+                  value="CC-0"/></td>
+    </tr>
+    <tr>
+      <td>Creator: </td>
+      <td><input type="text" id="input_creator" style="width:30em; margin-left: 1em;"
+        value="(DarkTrick - 69f925915ed0193a3b841aeec09451df2326f104)"/></td>
+    </tr>  
+  </table>
+
+  <table class="boxed">
+    <tr>
+      <td>Namespace: </td>
+      <td><input type="text" id="input_namespace" value=""/> (e.g. Gtk)</td>
+    </tr>
+    <tr>
+      <td>Class name: </td>
+      <td><input type="text" id="input_classname" value=""/> (e.g. text_view_2 )</td>
+    </tr>
+    <tr>
+      <td>Base class prefix: </td>
+      <td><input type="text" id="input_baseclass_prefix" value="gtk_"/> (e.g. gtk_text_view )</td>
+    </tr>
+    <tr>
+      <td>Is final class?</td>
+      <td> <input type="checkbox" id="input_isFinal"></td>
+    </tr>
+  </table>
+  </div>
+  
+  <input type="button" onclick="javascript:generate();" 
+      value="generate" 
+      style="margin-left: 11.5em;width: 12em;height:5em;border-radius: 5px;" />
+
+</span>
+
+<span class="output boxed" >  
+  <h1>Output </h1>
+  <span class="boxed">
+    <h2>h file</h2>
+    <textarea class="code_output" id="output_hFile">&lt;not yet generated&gt;</textarea>
+  </span>
+  <span class="boxed">
+    <h2>c file</h2>
+    <textarea class="code_output" id="output_cFile">&lt;not yet generated&gt;</textarea>
+  </span>  
+</span>
+
+<br><br><br><br><br><br>
+
+</body>
+</html>
