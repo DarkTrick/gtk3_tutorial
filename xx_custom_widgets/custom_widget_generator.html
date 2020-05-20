@@ -3,7 +3,8 @@
 <!-- 
   *  License: CC-BY
   *  Creator: (DarkTrick - 69f925915ed0193a3b841aeec09451df2326f104)
-  *  Feel free to give some credit
+  
+  * Default values for input fields are in the bottom of this file.
 -->
 
 <head>
@@ -103,17 +104,13 @@
 
 G_BEGIN_DECLS
 
-#ifndef CLASS_DEF
-#define CLASS_DEF(_classname) typedef struct _##_classname _classname; struct _##_classname
-#endif                          
-
 #define ` + TYPE + ` ` + function_prefix + `_get_type ()
 `;
 
 if(isFinal){ 
   content += String.raw`
 G_DECLARE_FINAL_TYPE (`+ClassName+`, ` + function_prefix + `, ` + ns_upper + `, ` + class_upper + `, ` + baseclass + `)
-CLASS_DEF(`+ClassName+`)
+struct _`+ClassName+`
 {
   ` + baseclass + ` parent;
 };`;
@@ -123,7 +120,7 @@ CLASS_DEF(`+ClassName+`)
 // note: member vars of derivable classes go into ` + ClassName + `Private (see c file)
 
 G_DECLARE_DERIVABLE_TYPE(`+ClassName+`, ` + function_prefix + `, ` + ns_upper + `, ` + class_upper + `, ` + baseclass + `)
-CLASS_DEF(`+ClassName+`Class)
+struct _`+ClassName+`Class
 {
   ` + baseclass + `Class parent_class;
 };`;
@@ -134,7 +131,6 @@ content += String.raw`
 // --------------------------
 // ---- Public functions ----
 // --------------------------
-GType          ` + function_prefix + `_get_type (void);
 GtkWidget*     ` + function_prefix + `_new (void);
 
 G_END_DECLS
@@ -155,10 +151,12 @@ G_END_DECLS
   // @param: eg. "gtk_button" or "gtk_text_view". (NOT "GtkButton"!)
   function _createType(function_prefix){
     var str = function_prefix.toUpperCase();
-    
-    // GTK messes up the placement of the word "TYPE"
-    if(str.substr(0,3) == "GTK"){
+      
+    // GLib / GTK messed up the placement of the word "TYPE"
+    if(str.substr(0,4) == "GTK_"){
       str = "GTK_TYPE" + str.slice(3);
+    } else if(str.substr(0,2) == "G_"){
+      str = "G_TYPE" + str.slice(1);
     } else {
       str = "TYPE_" + str;
     }
@@ -226,7 +224,7 @@ static void
 ` + function_prefix + `_class_init (` + ClassName + `Class* klass)
 {
   // override class methods from ` + BaseClass + `:
-  ` + BaseClass + `Class * parent_button = ` + BASECLASS_PREFIX + `_CLASS(klass);  
+  // ` + BaseClass + `Class * parent = ` + BASECLASS_PREFIX + `_CLASS(klass);  
 }
 
 ` + classMethodSplitter + `
@@ -342,22 +340,22 @@ GtkWidget*
     <tr>
       <td>Creator: </td>
       <td><input type="text" id="input_creator" style="width:30em; margin-left: 1em;"
-        value="DarkTrick"/></td>
+        value="(DarkTrick - 69f925915ed0193a3b841aeec09451df2326f104)"/></td>
     </tr>  
   </table>
 
   <table class="boxed">
     <tr>
       <td>Namespace: </td>
-      <td><input type="text" id="input_namespace" value=""/> (e.g. Gtk)</td>
+      <td><input type="text" id="input_namespace" value="my"/> (e.g. my)</td>
     </tr>
     <tr>
       <td>Class name: </td>
-      <td><input type="text" id="input_classname" value=""/> (e.g. text_view_2 )</td>
+      <td><input type="text" id="input_classname" value="button"/> (e.g. button )</td>
     </tr>
     <tr>
       <td>Base class prefix: </td>
-      <td><input type="text" id="input_baseclass_prefix" value="gtk_"/> (e.g. gtk_text_view )</td>
+      <td><input type="text" id="input_baseclass_prefix" value="gtk_button"/> (e.g. gtk_button )</td>
     </tr>
     <tr>
       <td>Is final class?</td>
