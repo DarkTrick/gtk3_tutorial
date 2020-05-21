@@ -2,7 +2,7 @@
 <html>
 <!-- 
   *  License: CC-BY
-  *  Creator: (DarkTrick - 69f925915ed0193a3b841aeec09451df2326f104)
+  *  Creator: DarkTrick - 69f925915ed0193a3b841aeec09451df2326f104
   
   * Default values for input fields are in the bottom of this file.
 -->
@@ -27,7 +27,10 @@
     }
 
     .boxed {
-      background-color:#00000010; border-radius:10px; padding:10px; margin: 5px;
+      background-color:#00000010; 
+      border-radius:10px; 
+      padding:10px; 
+      margin: 5px;
       vertical-align: top;
     }
 
@@ -40,23 +43,254 @@
 
     h1{margin-top: 0.5em;margin-bottom: 0.5em;}
     h2{margin-top: 0.5em;margin-bottom: 0.5em;}
+
+    table td {
+      padding-top:7px;
+    }
+
+    /* tags, that are only available for interface creation - default: invisible */
+    .ifaceInput {
+      visibility: hidden;
+      position: absolute;
+    }
+
+    /* tags, that are only available for class creation - default: visible */
+    .classInput {
+      visibility:visible;
+    }
+
+    .generateButton {
+      margin-left: 11.5em;width: 12em;height:5em;border-radius: 5px;
+    }
+
+    .tabButton {
+      border-color: white;
+      border-width: 0px;
+      vertical-align: middle;
+      border-radius: 10px;
+      padding: 5px 15px 5px 15px;
+
+      margin-left: 20px;
+      /*border-bottom-left-radius: 0px;
+      border-bottom-right-radius: 0px;
+      
+      
+      margin-left: 15px;
+      margin-bottom: -5px;*/
+
+    }
   </style>
 
   <script type="text/javascript">
+
+// ---------------------------------------------------------------
+
+/**
+* @brief: shows a specific gui
+* @param guiToShow: "classInput", "ifaceInput"
+* @param visibility: true / false
+*/
+function setGuiVisible(guiToShow, visibility){
+  var display = "visible";
+  var pos = "unset";
+  if(true == visibility){
+    display = "hidden";
+    pos = "absolute";
+  }
+
+  var elements = document.getElementsByClassName(guiToShow);
+  for (var i = 0; i<elements.length; ++i){
+    elements[i].style.visibility = display;
+    elements[i].style.position = pos;
+  }
+}
+
+// ---------------------------------------------------------------
+
+function showGui(guiToShow){
+  var iface = "ifaceInput";
+  var klass = "classInput";
+  var visible = true
   
-  // ---------------------------------------------------------------
+  if(klass == guiToShow)
+    visible = false;
+
+  setGuiVisible(iface, visible);
+  setGuiVisible(klass,!visible);
+
+}
+
+// ---------------------------------------------------------------
+
+function isGtkType (typename_underscored)
+{
+    var str = typename_underscored.toLowerCase();
+    if(str.substr(0,4) == "gtk_") return true;     
+    if(str.substr(0,2) == "g_") return true;
+
+    return false;
+  }
+
+// ---------------------------------------------------------------
+
+function extractNamespace(fqclassname_underscored){
+  var val = fqclassname_underscored;
+  return val.split("_",1)[0];
+}
+
+// ---------------------------------------------------------------
+
+function extractClassWithoutNamespace(fqclassname_underscored){
+  var val = fqclassname_underscored;
+  var namespace = extractNamespace(val);
+  return val.substr(namespace.length + 1);
+}
+
+// ---------------------------------------------------------------
+
+class Classdata
+{
+  // -----------------------------------------------------------------
+
+  // @params: no camel case!
+  constructor (namespace, classname){
+    this.namespace = namespace.toLowerCase();
+    this.NAMESPACE = namespace.toUpperCase();
+
+    this.classname = classname.toLowerCase();
+    this.class_name = this.classname;
+
+    this.CLASSNAME = classname.toUpperCase();
+
+    this.fq_class_name = [this.namespace,this.classname].join("_");
+    this.FQ_CLASS_NAME = this.fq_class_name.toUpperCase();
+    
+    this.TYPE = this.createType(this.fq_class_name);
+    this.IS_TYPE = this.NAMESPACE + "_IS_" + this.CLASSNAME;
+
+    this.ClassName = this.createDeclarationClassname(this.fq_class_name);
+
+    this.filename = this.ClassName.toLowerCase();
+    this.headerInclude = "";
+    if(this.filename != "" && !isGtkType(this.fq_class_name)){
+      this.headerInclude = '#include "' + this.filename + '.h"\n';    
+    }
+  }
+
+  // -----------------------------------------------------------------
+
+  // @brief: my_button -> TYPE_MY_BUTTON OR gtk_button -> GTK_TYPE_BUTTON
+  // @param: eg. "gtk_button" or "gtk_text_view". (NOT "GtkButton"!)  
+  createType (function_prefix){
+    if(function_prefix == "") return "";
+
+    var str = function_prefix.toUpperCase();
+    
+    // GLib / GTK messed up the placement of the word "TYPE"
+    if(str.substr(0,4) == "GTK_"){
+      str = "GTK_TYPE" + str.slice(3);
+    } else if(str.substr(0,2) == "G_"){
+      str = "G_TYPE" + str.slice(1);
+    } else {
+      str = "TYPE_" + str;
+    }
+    return str;
+  }
+
+  // -----------------------------------------------------------------
+
+  // @brief: eg: my_button -> MyButton
+  createDeclarationClassname (function_prefix){
+    var underscoredString = function_prefix
+    function _titleize (value) 
+    {
+      String.prototype.replaceAt = function(index, replacement) {
+        return this.substr(0, index) + replacement + this.substr(index + replacement.length);
+      }
+      var ret = value.charAt(0).toUpperCase() + value.slice(1);
+      
+      var pos = -1;
+      while(true){
+        pos = ret.indexOf("_",pos);
+        if(-1 == pos) { break; }
+        
+        if(0 != pos){ 
+          ret = ret.replaceAt(pos+1,ret.charAt(pos+1).toUpperCase());
+        }      
+        ++pos;
+      }
+
+      return ret;
+    }
+    var titelized = _titleize(underscoredString);
+    return titelized.replace(/_/g,"");
+  }
+
+  // -----------------------------------------------------------------
+}
+
+
+// ---------------------------------------------------------------
+
+class GenerationData
+{
+  // @param fq_base_class: like "gtk_editable"
+  constructor (namespace, classname, isFinal, licensepart, fq_base_class, isInterface)
+  {
+    // ------ set up general values -------
+    this.isFinal     = isFinal;
+    this.isInterface = isInterface;
+    this.licensepart = licensepart;
+
+    // interface specific options:
+    this.iface_prepareSignal      = document.getElementById("input_prepareSignal")     .checked;
+    this.iface_useForwarderMacro  = document.getElementById("input_useForwarderMacro") .checked;
+    this.iface_createTestfunction = document.getElementById("input_createTestfunction").checked;
+    this.iface_createTestsignal   = document.getElementById("input_createTestsignal")  .checked;   
+    
+
+    // ------ set up values for main class -------
+    this.genClass = new Classdata(namespace, classname);
+    this.c = this.genClass; // shorter alias   
+    
+    // ------ setup values for base class -------
+    if(this.isInterface) {
+      fq_base_class = "g_object";
+    }
+    this.baseclass = new Classdata(extractNamespace(fq_base_class),
+                                   extractClassWithoutNamespace(fq_base_class));
+    this.b = this.baseclass; // shorter alias
+
+    // ----- setup values for interface to be implemented -----
+    var impl = document.getElementById("input_implements").value;
+    this.implements = null;
+    if("" != impl) {
+      this.implements = new Classdata(extractNamespace(impl),
+                               extractClassWithoutNamespace(impl));
+      this.implements_initfuncname = this.c.fq_class_name + "_" + 
+                                     this.implements.fq_class_name + "_init";
+    }
+    this.i = this.implements; // shorter alias    
+    
+    // ------ constants -------
+    this.classMethodSplitterRaw = "// ==================================================================="
+    this.classMethodSplitter = "\n" + this.classMethodSplitterRaw + "\n\n"
+    this.MethodSplitter      = "\n// -------------------------------------------------------------------\n\n"
+  }
+
+  // -------------------------------------------------
 
   // @brief Capitalize first word letters (new words start at underbar)
   //        eg: button    -> Button
   //        eg: my_button -> My_Button
-  function _titelize(value) {
+  _titleize (value) 
+  {
     String.prototype.replaceAt = function(index, replacement) {
       return this.substr(0, index) + replacement + this.substr(index + replacement.length);
     }
-
     var ret = value.charAt(0).toUpperCase() + value.slice(1);
     
-    pos = -1;
+    var pos = -1;
     while(true){
       pos = ret.indexOf("_",pos);
       if(-1 == pos) { break; }
@@ -70,88 +304,32 @@
     return ret;
   }
 
-  // ---------------------------------------------------------------
+  // -------------------------------------------------
 
   // @brief: eg: my_button -> MyButton
-  function _createDeclarationClassname(underscoredString){
-    var titelized = _titelize(underscoredString);
+  _createDeclarationClassname (underscoredString){
+    var titelized = this._titleize(underscoredString);
     return titelized.replace(/_/g,"");
   }
 
-  // ---------------------------------------------------------------
-  
-  // @brief: generate header file
-  function _generateHFile (namespace, classname, baseclass, isFinal, licensepart)
-  {
-    var ns_lower    = namespace.toLowerCase()
-    var class_lower = classname.toLowerCase()
+  // -------------------------------------------------
 
-    var ns_upper    = namespace.toUpperCase()
-    var class_upper = classname.toUpperCase()
+  _isGtkType (typename_underscored){
+    var str = typename_underscored.toLowerCase();
+    if(str.substr(0,4) == "gtk_") return true;     
+    if(str.substr(0,2) == "g_") return true;
 
-    var function_prefix = namespace.toLowerCase() + "_" + classname.toLowerCase();
-    var ClassName  = _createDeclarationClassname(function_prefix);
-
-    var TYPE = _createType(function_prefix);
-    
-    var content = String.raw`
-#ifndef __` + ns_upper + `_` + class_upper + `_H__
-#define __` + ns_upper + `_` + class_upper + `_H__
-
-` + licensepart + `
-
-#include <gtk/gtk.h>
-
-G_BEGIN_DECLS
-
-#define ` + TYPE + ` ` + function_prefix + `_get_type ()
-`;
-
-if(isFinal){ 
-  content += String.raw`
-G_DECLARE_FINAL_TYPE (`+ClassName+`, ` + function_prefix + `, ` + ns_upper + `, ` + class_upper + `, ` + baseclass + `)
-struct _`+ClassName+`
-{
-  ` + baseclass + ` parent;
-};`;
-} else {
-  content += String.raw`
-
-// note: member vars of derivable classes go into ` + ClassName + `Private (see c file)
-
-G_DECLARE_DERIVABLE_TYPE(`+ClassName+`, ` + function_prefix + `, ` + ns_upper + `, ` + class_upper + `, ` + baseclass + `)
-struct _`+ClassName+`Class
-{
-  ` + baseclass + `Class parent_class;
-};`;
-
-} 
-content += String.raw`
-
-// --------------------------
-// ---- Public functions ----
-// --------------------------
-GtkWidget*     ` + function_prefix + `_new (void);
-
-G_END_DECLS
-
-#endif /* include-protector */`;
-
-
-    return content;
+    return false;
   }
 
-  // ---------------------------------------------------------------
-  // ---------------------------------------------------------------
-  // ---------------------------------------------------------------
-  // ---------------------------------------------------------------
-  // ---------------------------------------------------------------
-  // ---------------------------------------------------------------
+  // -------------------------------------------------
 
   // @param: eg. "gtk_button" or "gtk_text_view". (NOT "GtkButton"!)
-  function _createType(function_prefix){
+  _createType (function_prefix){
+    if(function_prefix == "") return "";
+
     var str = function_prefix.toUpperCase();
-      
+    
     // GLib / GTK messed up the placement of the word "TYPE"
     if(str.substr(0,4) == "GTK_"){
       str = "GTK_TYPE" + str.slice(3);
@@ -162,165 +340,532 @@ G_END_DECLS
     }
     return str;
   }
-
-  // ---------------------------------------------------------------
-  
-  // @brief: generate c file
-  function _generateCFile (namespace, classname, baseclass_prefix, isFinal, licensepart)
-  {
-    var ns        = namespace.toLowerCase()
-    var classname = classname.toLowerCase()
-
-    var NS        = namespace.toUpperCase()
-    var CLASSNAME = classname.toUpperCase()
-
-    var BASECLASS_PREFIX  = baseclass_prefix.toUpperCase();
-    var BaseClass         = _createDeclarationClassname(baseclass_prefix);
-    var BASECLASS_TYPE    = _createType(baseclass_prefix);
-
-    var function_prefix = namespace.toLowerCase() + "_" + classname.toLowerCase();
-    var ClassName       = _createDeclarationClassname(function_prefix);
-
-    var content = "not yet implemented - c file";
-
-    var classMethodSplitter = "// ==================================================================="
-    var MethodSplitter      = "// -------------------------------------------------------------------"
-
-    {
-      content = licensepart + '\n' + 
-                '#include "' + ClassName.toLowerCase() + '.h"\n'
-                + classMethodSplitter + "\n";
-
-// final classes don't necessary need a private
-if(isFinal) {
-  content += "/*";
 }
 
-content += String.raw`
-CLASS_DEF(` + ClassName + `Private)
-{
-  char dummy; // we need at least one elem within our class
-};
-G_DEFINE_TYPE_WITH_PRIVATE(` + ClassName + `, ` + function_prefix + `,  `+ BASECLASS_TYPE +`)
+// ---------------------------------------------------------------
+
+function _getHFile_top (generationData){
+  var d = generationData
+
+  return d.licensepart + 
+        String.raw`#ifndef __` + d.c.NAMESPACE + `_` + d.c.CLASSNAME + `_H__
+#define __` + d.c.NAMESPACE + `_` + d.c.CLASSNAME + `_H__
+
+#include <gtk/gtk.h>
+
+G_BEGIN_DECLS
+
+#define ` + d.c.TYPE + ` ` + d.c.fq_class_name + `_get_type ()
 `;
-
-// final classes don't necessary need a private
-if(isFinal) {
-  content += "//*/\n"+
-  `G_DEFINE_TYPE(` + ClassName + `, ` + function_prefix + `,  `+ BASECLASS_TYPE + ")\n";
 }
 
-  content += String.raw`
-`  + classMethodSplitter + "\n" + classMethodSplitter + "\n" + classMethodSplitter + `
+// ---------------------------------------------------------------
 
-` + MethodSplitter + `
-// TODO: fill with usual methods
-` + MethodSplitter + `
+// @param type: "derivable", "final", "interface"
+function _getDeclaration(generationData){
+  var d = generationData;
+  var content = "";
 
-` + classMethodSplitter + "\n" + classMethodSplitter + "\n" + classMethodSplitter + `
+  if(d.isInterface){
+    content = "\n" +
+      "G_DECLARE_INTERFACE ("+d.c.ClassName+", "+d.c.fq_class_name+", " +
+                              d.c.NAMESPACE+", "+d.c.CLASSNAME+", GObject)\n" +
+      "\n" + 
+      "struct _"+d.c.ClassName+"Interface \n" +
+      "{\n" +
+      "  GTypeInterface parent;\n\n";
 
-// @brief: init class stuff like methods
-static void 
-` + function_prefix + `_class_init (` + ClassName + `Class* klass)
-{
-  // override class methods from ` + BaseClass + `:
-  // ` + BaseClass + `Class * parent = ` + BASECLASS_PREFIX + `_CLASS(klass);  
-}
-
-` + classMethodSplitter + `
-
-static void 
-` + function_prefix + `_init (` + ClassName + `* self)
-{  
-  // init variables
-  
-  // init private variables:
-  // ` + ClassName + `Private * priv = ` + function_prefix + `_get_instance_private(self);
-}
-
-` + classMethodSplitter + `
-
-GtkWidget*
-` + function_prefix + `_new ()
-{
-  GtkWidget * self = g_object_new (` + function_prefix + `_get_type(), NULL);   
-  // stuff that doesn't work within init can be done here  
-  return self;
-}
-
-` + classMethodSplitter;
-
+    content += "  // -----   signals    -----\n" +
+                "  // (notice: no prefix here)\n";
+    if(d.iface_createTestfunction){
+      content += "  void (* testsignal) ("+d.c.ClassName+" *self);";
     }
+
+    content += "\n\n" + 
+                "  // ----- interface functions -----\n" +
+                "  //   (notice: no prefix here)\n";
+
+    if(d.iface_createTestsignal){
+      content += "  gboolean (*testfunction) ("+d.c.ClassName+" *self,\n" + 
+                  "                            gint     value);";
+    }
+
+
+    content +="\n" +  
+              "};\n";
 
     return content;
   }
 
-  // ---------------------------------------------------------------
+  if(d.isFinal){ 
+    return "\n" + 
+      `G_DECLARE_FINAL_TYPE (`+d.c.ClassName+`, ` + d.c.fq_class_name + `, ` + d.c.NAMESPACE + `, ` 
+                            + d.c.CLASSNAME + `, ` + d.b.ClassName + `)` + "\n" +
+      "struct _"+d.c.ClassName+"\n" + 
+      "{\n" +
+      "  " + d.b.ClassName + " parent;\n" +
+      "};";
+  } else {
+    return "\n\n" +
+    "// note: member vars of derivable classes go into " + d.c.ClassName + "Private (see c file)\n" + 
+    "\n" + 
+    "G_DECLARE_DERIVABLE_TYPE(" + d.c.ClassName+`, ` + d.c.fq_class_name 
+                                + `, ` + d.c.NAMESPACE + `, ` + d.c.CLASSNAME + `, ` + d.b.ClassName + ")\n" +
+    "struct _"+d.c.ClassName+`Class` + "\n" + 
+    "{\n" +
+      d.b.ClassName + "Class parent_class;\n" + 
+    "};";
 
-  function showError(error){
-    // TODO: create a div for that
-    alert(error);
+  } 
+  return "";
+}
+
+
+// ---------------------------------------------------------------
+
+// @brief: generate header file
+function _generateHFile (generationData)
+{
+  var d = generationData;
+  
+  var content = _getHFile_top(d);
+  content += _getDeclaration(generationData);
+
+  content += "\n" + 
+              "// --------------------------\n"+
+              "// ---- Public functions ----\n"+
+              "// --------------------------\n";
+  
+  if(d.isInterface && d.iface_createTestfunction){
+    content +=
+    "gboolean "+d.c.fq_class_name+"_testfunction ("+d.c.ClassName+" *self,\n" + 
+    "                                gint     value);\n";
   }
 
-  // ---------------------------------------------------------------
+  if(!d.isInterface){
+    content += "GtkWidget* " + d.c.fq_class_name + "_new (void);\n";
+  }
+  content += "\nG_END_DECLS\n\n" +
+              "#endif /* include-protector */";
 
-  function createLicensePart(license,creator){
-    return `
-/**
- *  License: ` + license + `
- *  Creator: ` + creator + `
- **/     
-`;
+  return content;
+}
+
+// ---------------------------------------------------------------
+// ---------------------------------------------------------------
+// ---------------------------------------------------------------
+// ---------------------------------------------------------------
+// ---------------------------------------------------------------
+// ---------------------------------------------------------------
+
+function _define_macro_get_base_params(generationData){
+  var d = generationData;
+  return  d.c.ClassName + ", " + d.c.fq_class_name + ",  "+ d.b.TYPE;
+}
+
+// ---------------------------------------------------------------
+
+
+function _getCFile_defines(generationData){
+  var d = generationData;
+  var content = "";
+
+  if(null != d.i){
+    content += _getCFileContent_class_define_extended(d);
+  } else if (d.isFinal){
+    content += _getCFileContent_class_define_normal(d);      
+  } else if (!d.isFinal){
+    content += _getCFileContent_class_define_private(d);
   }
 
-  // ---------------------------------------------------------------
 
-  //@brief: generate class and put it into the fields
-  function generate (){
-    console.log("generating..");
+  return content;
+}
 
-    try {
-      // get values from DOM
-      var namespace       = document.getElementById("input_namespace").value;
-      var classname       = document.getElementById("input_classname").value;
-      var baseclass_prefix = document.getElementById("input_baseclass_prefix").value;
-      var isFinal         = document.getElementById("input_isFinal").checked;
-      
-      var license = document.getElementById("input_license").value;
-      var creator = document.getElementById("input_creator").value;
-      var licensepart = createLicensePart(license, creator);
+// ---------------------------------------------------------------
 
-      // validity checks:
-      if("" == namespace)       { showError("Namespace must be set");  return;}
-      if("" == classname)       { showError("class name must be set"); return;}
-      if("" == baseclass_prefix){ showError("base class prefix must be set"); return;}
+function getPrivateStruct(classdata){
+  var c = classdata;
+  return "typedef struct _" + c.ClassName + "Private " + c.ClassName + "Private;\n" + 
+          "struct _" + c.ClassName + "Private\n" +
+          "{\n" +
+          "  char dummy; // we need at least one elem within our class\n" +
+          "};\n";
+}
 
-      // generate content
-      var hFileContent  = _generateHFile(namespace,
-                                        classname,
-                                        _createDeclarationClassname(baseclass_prefix),
-                                        isFinal,
-                                        licensepart);
-      var cFileContent  = _generateCFile(namespace,
-                                        classname,
-                                        baseclass_prefix,
-                                        isFinal,
-                                        licensepart);
+// ---------------------------------------------------------------
 
-      // write result to DOM
-      document.getElementById("output_hFile").value = hFileContent;
-      document.getElementById("output_cFile").value = cFileContent;
-    } catch (e) {
-      alert("The following error occured during processing: \n " + e);
-      throw e;
+function commentate(str, commentate=true){
+  if(commentate)
+    return "/* " + str + " */";
+  return str;
+}
+
+// ---------------------------------------------------------------
+
+function _getCFileContent_class_define_normal(generationData){    
+  var baseParams = _define_macro_get_base_params(generationData);
+  return "G_DEFINE_TYPE(" + baseParams + ")\n";
+}
+function _getCFileContent_class_define_private(generationData){
+  var d = generationData;
+  var baseParams = _define_macro_get_base_params(d);
+  return String.raw`` +
+  `struct _` + d.c.ClassName + `Private
+  {
+    char dummy; // we need at least one elem within our class
+  };
+  G_DEFINE_TYPE_WITH_PRIVATE(` + baseParams +`)
+  `;
+}
+function _get_define_interface_with_code(generationData){
+  var d = generationData;
+  var baseParams = _define_macro_get_base_params(d);
+  return  "static void " + d.implements_initfuncname + "(" 
+                          + d.i.ClassName + "Interface *klass);\n" +
+
+          "G_DEFINE_INTERFACE_WITH_CODE("+baseParams+",\n" +
+          "                  G_IMPLEMENT_INTERFACE ("+d.i.TYPE+",\n" +
+          "                                         "+d.implements_initfuncname + "))\n";
+}
+function _getCFileContent_class_define_extended(generationData){
+  var d = generationData;
+  var baseParams = _define_macro_get_base_params(d);
+  return commentate(getPrivateStruct(d.c), !d.isFinal) + "\n" + 
+  "static void " + d.implements_initfuncname + "(" + d.i.ClassName + "Interface *klass);\n" +  
+  "G_DEFINE_TYPE_EXTENDED("+baseParams+", 0,\n" + 
+  "              " + commentate("G_ADD_PRIVATE("+d.c.ClassName+");", !d.isFinal) + "\n" + 
+  "              G_IMPLEMENT_INTERFACE("+d.i.TYPE+"\n" + 
+  "                                    "+d.implements_initfuncname + "));\n"; 
+}
+
+// ---------------------------------------------------------------
+
+function _getCFileContent_class(generationData){
+  var d = generationData;
+  var content = "";
+
+  content += _getCFile_defines(generationData);
+  content +=  d.classMethodSplitterRaw + "\n" + d.classMethodSplitterRaw +"\n"+ 
+
+              d.MethodSplitter + 
+              "// TODO: fill with usual methods" + 
+              d.MethodSplitter + 
+
+              d.classMethodSplitterRaw + "\n" + d.classMethodSplitterRaw +"\n\n"+ 
+
+              `// @brief: init class stuff like methods
+static void 
+` + d.c.fq_class_name + `_class_init (` + d.c.ClassName + `Class* klass)
+{
+  // override class methods from ` + d.b.ClassName + `:
+  // ` + d.b.ClassName + `Class * parent = ` + d.b.FQ_CLASS_NAME + `_CLASS(klass);  
+}` 
+
+  + d.classMethodSplitter + 
+
+`static void 
+` + d.c.fq_class_name + `_init (` + d.c.ClassName + `* self)
+{  
+  // init variables
+
+  // init private variables:
+  // ` + d.c.ClassName + `Private * priv = ` + d.c.fq_class_name + `_get_instance_private(self);
+}` 
+
+  + d.classMethodSplitter + 
+
+"GtkWidget*\n" +
+d.c.fq_class_name + `_new ()
+{
+  GtkWidget * self = g_object_new (` + d.c.fq_class_name + `_get_type(), NULL);   
+  // stuff that doesn't work within init can be done here  
+  return self;
+}` 
++ d.classMethodSplitter;
+
+  return content
+}
+
+// ---------------------------------------------------------------
+
+function getMacros_critical_if_fail(){
+return String.raw`// define convenience macros:
+
+#ifndef G_DISABLE_CHECKS
+// -------------------------------
+// @brief: if 'expr' != TRUE, print critical message.
+#ifndef gx_critical_if_fail
+  #define gx_critical_if_fail(expr)                       \
+  G_STMT_START {                                          \
+    if (! G_LIKELY (expr))                                \
+      {                                                   \
+        g_critical( "%s (%s:%d): assertion '%s' failed.", \
+                  G_STRFUNC, __FILE__, __LINE__ , #expr); \
+      }                                                   \
+  } G_STMT_END  
+
+// -------------------------------
+// @brief: if 'expr' != TRUE, print critical message. The message
+//         contains the G_OBJECT_TYPE_NAME of the object.
+#define gx_critical_if_fail_object(expr, object)                     \
+  G_STMT_START {                                                     \
+    if (! G_LIKELY (expr))                                           \
+      {                                                              \
+        g_critical( "%s (%s:%d): assertion '%s' failed on type %s.", \
+                  G_STRFUNC, __FILE__, __LINE__ ,                    \
+                  #expr, G_OBJECT_TYPE_NAME(object) );               \
+      }                                                              \
+  } G_STMT_END
+#endif  
+#endif
+// -------------------------------
+`
+}
+
+// ---------------------------------------------------------------
+
+function getMacro_BASIC_IFACE_FUNCTION(){
+  return String.raw`
+// define GLib eXtended functions
+#ifndef GX_FUNCTIONS
+  #define GX_FUNCTIONS
+
+  /** @brief: Convenience function. Creates NULL checks and calls the functions
+            every extended check should be performed before calling the macro.
+            First parameter of the function must be called "self"
+      @example: 
+                void
+                my_new_iface_testfunction ( MyNewIface *self,
+                                            gint        value)
+                {
+                  
+                  GX_DEFINE_BASIC_IFACE_FUNCTION(MyNewIface,MY,NEW_IFACE, testfunction, (self, value));
+                }
+  */
+  #define GX_DEFINE_BASIC_IFACE_FUNCTION(class_camelcase, moduleUpper, classUpper, vfunction, function_params) \
+            gx_critical_if_fail_object ( moduleUpper##_IS_##classUpper (self), self);                    \
+            class_camelcase##Interface * object = moduleUpper##_##classUpper##_GET_IFACE (self);         \
+            gx_critical_if_fail_object (NULL != object-> vfunction, self);                          \
+            return object->vfunction function_params;
+  
+#endif
+`
+}
+
+// ---------------------------------------------------------------
+function _getCFileContent_interface(generationData)
+{
+  var d = generationData;
+  var content = "";
+  content += getMacros_critical_if_fail();
+
+  if(d.iface_useForwarderMacro)
+    content += getMacro_BASIC_IFACE_FUNCTION();
+  
+  // does it implements an interface?
+  if(null != d.i){
+    content += _get_define_interface_with_code(generationData);
+  } else {
+    content += d.classMethodSplitter +
+                "G_DEFINE_INTERFACE (" + d.c.ClassName + ", " + d.c.fq_class_name +
+                ", " + d.b.TYPE + ")\n" +
+                d.classMethodSplitter;
+  }
+
+  if(d.iface_prepareSignal)
+  {
+    content +=  "// define signal indices\n" + 
+                "enum {\n";
+
+    if(d.iface_createTestsignal)
+      content += "  SIGNAL_TESTSIGNAL,\n";
+
+    content +=  "  N_SIGNALS\n" +
+                "};\n" +
+                "\n" +
+                "static guint signals[N_SIGNALS];\n" + 
+                d.classMethodSplitter;
+  }
+  // ------- create testfunction() -------
+  if(d.iface_createTestfunction)
+  {
+    content += d.MethodSplitter +      
+              "gboolean\n" +
+              d.c.fq_class_name + "_testfunction(" + d.c.ClassName + " *self,\n" +
+              "                      gint value)\n" +
+              "{\n";
+  
+
+    content += "  // write additional parameter tests here, if you like / need\n";
+
+    if(d.iface_useForwarderMacro){
+      content += "  GX_DEFINE_BASIC_IFACE_FUNCTION(" + d.c.ClassName + ", "
+                          + d.c.NAMESPACE +", "+d.c.CLASSNAME + "\n" +
+                  "                                 , testfunction, (self, value));\n";
+    } else {
+      content += 
+        "  gx_critical_if_fail_object ( "+d.c.IS_TYPE+" (self), self); \n" +
+        "  "+d.c.ClassName+"Interface * object = "+ d.c.FQ_CLASS_NAME 
+                                          +"_GET_IFACE (self); \n" +
+        "  gx_critical_if_fail_object (NULL != object-> testfunction, self); \n" +
+        "  return object->testfunction (self, value);\n";
     }
+    
+    content += "}\n" +
+              d.MethodSplitter
+  } 
+  // create interface init method
+  content += 
+        d.classMethodSplitter + 
+
+        "static void\n" + 
+        d.c.fq_class_name + "_default_init("+d.c.ClassName+"Interface * klass)\n" +
+        "{\n" +              
+        "    // if wanted: setup default implementation for methods\n" +
+        "\n" +
+        "    // setup signals\n";
+  
+  if(d.iface_createTestsignal){
+    content +=  '    signals[SIGNAL_TESTSIGNAL] = g_signal_new ("testsignal", \n' +
+                "                                "+d.c.TYPE+", G_SIGNAL_RUN_LAST,\n" +
+                "                                G_STRUCT_OFFSET ("+d.c.ClassName+"Interface, testsignal),\n" +
+                "                                0, NULL, NULL, G_TYPE_NONE, 0);\n";
   }
 
-  // ---------------------------------------------------------------
+  content +=  "\n" +
+              "}\n" +
+              d.classMethodSplitter;
+
+  return content;
+}
+// ---------------------------------------------------------------
+
+// @brief: generate c file
+function _generateCFile (generationData)
+{
+  var d = generationData;
+  
+  var content = "not yet implemented - c file";
+  
+  content = d.licensepart +  
+            d.c.headerInclude;
+  
+  if(null != d.i)
+    content += d.i.headerInclude;
+
+  content += d.classMethodSplitter;
+
+
+  if (d.isInterface)
+  {
+    content += _getCFileContent_interface(generationData);
+  } else {
+    content += _getCFileContent_class(generationData);
+  }
+
+    // add iface impl if necessary
+    if(null != d.i){
+      content +=
+      "static void \n" + 
+      d.implements_initfuncname + "(" + d.i.ClassName + "Interface *klass)\n" + 
+      "{\n" + 
+      "  // map iface functions to new functions\n" + 
+      "  //klass->testfunction = " + d.c.fq_class_name + "_testfunction;\n" + 
+      "  \n" + 
+      "  // map signal functions\n" + 
+      "  //klass->testsignal = " + d.c.fq_class_name + "_testsignal;\n" + 
+      "}\n" +
+      d.classMethodSplitter;
+    }
+
+
+  return content;
+}
+
+// ---------------------------------------------------------------
+
+function showError(error){
+  // TODO: create a div for that
+  alert(error);
+}
+
+// ---------------------------------------------------------------
+
+function createLicensePart(license,creator){
+  return "" + 
+`/**
+*  License: ` + license + `
+*  Creator: ` + creator + `
+**/  
+
+`;
+}
+
+// ---------------------------------------------------------------
+
+//@brief: generate class and put it into the fields
+//@param type: "class" or "interface"
+function generate (type){
+  console.log("generating..");
+  
+  try {
+    // get values from DOM
+    var namespace        = document.getElementById("input_namespace").value;
+    var classname        = document.getElementById("input_classname").value;
+    var baseclass_prefix = document.getElementById("input_baseclass_prefix").value;
+    var isFinal          = document.getElementById("input_isFinal").checked;
+    
+    var license = document.getElementById("input_license").value;
+    var creator = document.getElementById("input_creator").value;
+    var licensepart = createLicensePart(license, creator);
+
+    // generate content
+    var isInterface = ("interface" == type) ? true : false;
+    var baseclass_prefix = (isInterface)    ? "g_object" : baseclass_prefix;
+
+    // validity checks:
+    if("" == namespace)       { showError("Namespace must be set");  return;}
+    if("" == classname)       { showError("class name must be set"); return;}
+    if("" == baseclass_prefix){ showError("base class must be set"); return;}
+    if(-1 == baseclass_prefix.search("_")) {
+                                showError("base class should be in underscore-case"); 
+                                }
+
+
+    var d = new GenerationData(namespace, classname, isFinal, 
+                                licensepart, baseclass_prefix, 
+                              isInterface);
+
+    // write result to DOM
+    var hfile = _generateHFile(d);
+    var cfile = _generateCFile(d)
+    document.getElementById("output_hFile").value = hfile;
+    document.getElementById("output_cFile").value = cfile;
+    
+    document.getElementById("output_hFileName").innerHTML = d.c.filename + ".h";
+    document.getElementById("output_cFileName").innerHTML = d.c.filename + ".c";
+
+    // inform user, if something might have gone wrong
+    if(hfile.search("undefined") != -1){
+      alert("Warning: something might have gone wrong. I found an `undefined` within the c file");
+    }
+    if(cfile.search("undefined") != -1){
+      alert("Warning: something might have gone wrong. I found an `undefined` within the h file");
+    }
+    
+
+  } catch (e) {
+    alert("The following error occured during processing: \n " + e);
+    throw e;
+  }
+}
+
+// ---------------------------------------------------------------
   </script>  
 </head>
 
-<body onload="document.getElementById('input_namespace').focus();">
+<body onload="document.getElementById('input_namespace').focus();generate();">
 
 <div class="explanation">
   <h2>Explanation</h2>
@@ -328,9 +873,24 @@ GtkWidget*
   <br>
   This is not exhaustive, but it will reduce the burden a little
 </div>
-<span class="boxed">
+
+<span class="boxed">  
+  
 <div class="input">
-<h1>Input</h1>
+<h1>Input<span>
+  <span class="ifaceInput">
+    <input class="tabButton" type="button" onClick="javascript:showGui('ifaceInput');" 
+            value="class" style="background-color: #97880055;">
+    <input class="tabButton" type="button" value="interface">
+  </span>
+  <span class="classInput">
+    <input class="tabButton" type="button"  value="class">  
+    <input class="tabButton" type="button" onClick="javascript:showGui('classInput');" value="interface" 
+            style="background-color: #97880055;">
+  </span>
+</span>  </h1>
+  
+
   <table class="boxed">
     <tr>
       <td>License: </td>
@@ -340,45 +900,80 @@ GtkWidget*
     <tr>
       <td>Creator: </td>
       <td><input type="text" id="input_creator" style="width:30em; margin-left: 1em;"
-        value="(DarkTrick - 69f925915ed0193a3b841aeec09451df2326f104)"/></td>
+        value="DarkTrick - 69f925915ed0193a3b841aeec09451df2326f104"/></td>
     </tr>  
   </table>
 
   <table class="boxed">
     <tr>
       <td>Namespace: </td>
-      <td><input type="text" id="input_namespace" value="my"/> (e.g. my)</td>
+      <td><input type="text" id="input_namespace" value="my" placeholder="(mandatory)"/> (e.g. my)</td>
     </tr>
     <tr>
-      <td>Class name: </td>
-      <td><input type="text" id="input_classname" value="button"/> (e.g. button )</td>
+      <td><span class="classInput">Class</span><span class="ifaceInput">Interface</span> name: </td>
+      <td><input type="text" id="input_classname" value="button" placeholder="(mandatory)"/> (e.g. button )</td>
+    </tr>
+    <tr class="classInput">
+      <td>Base class: </td>
+      <td><input type="text" id="input_baseclass_prefix" value="gtk_button" placeholder="(mandatory)"/> (e.g. gtk_button )</td>
     </tr>
     <tr>
-      <td>Base class prefix: </td>
-      <td><input type="text" id="input_baseclass_prefix" value="gtk_button"/> (e.g. gtk_button )</td>
+      <td>Implements interface: </td>
+      <td><input type="text" id="input_implements" value="" placeholder="(optional)"/> (e.g. gtk_editable)</td>
     </tr>
-    <tr>
+    <tr class="classInput">
       <td>Is final class?</td>
       <td> <input type="checkbox" id="input_isFinal"></td>
+    </tr>
+    
+    <tr class="ifaceInput" >
+      <td><br>Prepare signal use?</td>
+      <td><br><input type="checkbox" id="input_prepareSignal" checked="checked">
+       (create an enum and a `signal` variable) </td>
+    </tr>
+    <tr class="ifaceInput" >
+      <td><b><u>Newbie helper</u></b></td>
+      <td></td>
+    </tr>
+    <tr class="ifaceInput" >
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;create test-function</td>
+      <td> <input type="checkbox" id="input_createTestfunction" checked="checked"></td>
+    </tr>
+    <tr class="ifaceInput" >
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;create test-signal</td>
+      <td> <input type="checkbox" id="input_createTestsignal" checked="checked"></td>
+    </tr>
+    <tr class="ifaceInput" >
+      <td>create macro for <br>
+          default function impl</td>
+      <td> <input type="checkbox" id="input_useForwarderMacro" checked="checked">
+       (NULL-checks and function call <br>
+       can be done through GX_* macro.)</td>
     </tr>
   </table>
   </div>
   
-  <input type="button" onclick="javascript:generate();" 
-      value="generate" 
-      style="margin-left: 11.5em;width: 12em;height:5em;border-radius: 5px;" />
+  <input class="classInput generateButton" type="button" onclick="javascript:generate('class');" 
+      value="generate class"  />
+  
+  <input class="ifaceInput generateButton" type="button" onclick="javascript:generate('interface');" 
+      value="generate interface"  />
 
 </span>
 
 <span class="output boxed" >  
   <h1>Output </h1>
   <span class="boxed">
-    <h2>h file</h2>
-    <textarea class="code_output" id="output_hFile">&lt;not yet generated&gt;</textarea>
+    <h2 id="output_hFileName">h file</h2>
+    <textarea wrap="off" class="code_output" id="output_hFile"
+     onfocus="this.select();">
+    &lt;not yet generated&gt;</textarea>
   </span>
   <span class="boxed">
-    <h2>c file</h2>
-    <textarea class="code_output" id="output_cFile">&lt;not yet generated&gt;</textarea>
+    <h2 id="output_cFileName">c file</h2>
+    <textarea wrap="off" class="code_output" id="output_cFile"
+    onfocus="this.select();">
+    &lt;not yet generated&gt;</textarea>
   </span>  
 </span>
 
