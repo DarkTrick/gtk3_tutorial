@@ -535,7 +535,7 @@ function _getCFileContent_class_define_extended(generationData){
   "static void " + d.implements_initfuncname + "(" + d.i.ClassName + "Interface *klass);\n" +  
   "G_DEFINE_TYPE_EXTENDED("+baseParams+", 0,\n" + 
   "              " + commentate("G_ADD_PRIVATE("+d.c.ClassName+");", !d.isFinal) + "\n" + 
-  "              G_IMPLEMENT_INTERFACE("+d.i.TYPE+"\n" + 
+  "              G_IMPLEMENT_INTERFACE("+d.i.TYPE+",\n" + 
   "                                    "+d.implements_initfuncname + "));\n"; 
 }
 
