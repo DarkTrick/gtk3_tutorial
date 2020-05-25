@@ -6,4 +6,4 @@ https://htmlpreview.github.io/?https://raw.githubusercontent.com/DarkTrick/gtk_t
 
 Custom Widget Code Generator
 =============================
-https://htmlpreview.github.io/?https://raw.githubusercontent.com/DarkTrick/gtk_tutorial/master/xx_custom_widgets/custom_widget_generator.html
+https://htmlpreview.github.io/?https://raw.githubusercontent.com/DarkTrick/gtk_tutorial/master/xx_custom_widget_and_interface/custom_widget_generator.html
