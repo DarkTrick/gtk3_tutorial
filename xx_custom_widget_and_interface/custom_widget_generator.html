@@ -639,9 +639,10 @@ function getMacro_BASIC_IFACE_FUNCTION(){
                 }
   */
   #define GX_DEFINE_BASIC_IFACE_FUNCTION(class_camelcase, moduleUpper, classUpper, vfunction, function_params) \
+            class_camelcase##Interface * object;                                                         \
             gx_critical_if_fail_object ( moduleUpper##_IS_##classUpper (self), self);                    \
-            class_camelcase##Interface * object = moduleUpper##_##classUpper##_GET_IFACE (self);         \
-            gx_critical_if_fail_object (NULL != object-> vfunction, self);                          \
+            object = moduleUpper##_##classUpper##_GET_IFACE (self);                                      \
+            gx_critical_if_fail_object (NULL != object-> vfunction, self);                               \
             return object->vfunction function_params;
   
 #endif
