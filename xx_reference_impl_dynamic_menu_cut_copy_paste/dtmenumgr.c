@@ -134,24 +134,24 @@ dt_menu_mgr_update_sensitiveness_cut_copy_paste(GtkWindow * window)
   else if (GTK_IS_EDITABLE (focused))
     {
       // maybe disable paste / cut
-      gboolean editable = gtk_editable_get_editable (GTK_EDITABLE (focused));
-      g_simple_action_set_enabled (action_paste, editable);
-      g_simple_action_set_enabled (action_cut,   editable);
-
       guint tmp;
       gboolean selectionAvailable = gtk_editable_get_selection_bounds (GTK_EDITABLE (focused), &tmp, &tmp);
-      g_simple_action_set_enabled (action_copy, selectionAvailable);    
+      gboolean editable = gtk_editable_get_editable (GTK_EDITABLE (focused));
+
+      g_simple_action_set_enabled (action_copy,  selectionAvailable);    
+      g_simple_action_set_enabled (action_cut,   editable && selectionAvailable);
+      g_simple_action_set_enabled (action_paste, editable);      
     } 
   else if (GTK_IS_TEXT_VIEW (focused))
     {
       // disable paste / cut
       gboolean editable = gtk_text_view_get_editable ( GTK_TEXT_VIEW (focused));
-      g_simple_action_set_enabled (action_paste, editable);
-      g_simple_action_set_enabled (action_cut,   editable);
-
       GtkTextBuffer * buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (focused));
-      gboolean selectionAvailable = (NULL == buffer || (gtk_text_buffer_get_has_selection (buffer) == FALSE));
-      g_simple_action_set_enabled (action_copy, selectionAvailable);
+      gboolean selectionAvailable = (NULL != buffer && (gtk_text_buffer_get_has_selection (buffer) == TRUE));
+
+      g_simple_action_set_enabled (action_copy,  selectionAvailable);    
+      g_simple_action_set_enabled (action_cut,   editable && selectionAvailable);
+      g_simple_action_set_enabled (action_paste, editable);      
     }  
   else 
     { // fallback: enable/disable according to signal support only
