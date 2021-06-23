@@ -1,3 +1,8 @@
+Knowledge I gathered during learning GTK3.
+
+Not everything is as up to date, as I wish it to be. 
+Take some stuff with a little care. I'm still working on this.
+
 Just view the site:
 View as website 
 =====================
